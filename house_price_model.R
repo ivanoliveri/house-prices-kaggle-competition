@@ -1,3 +1,7 @@
+library(randomForest)
+
+library(Metrics)
+
 PerformFeatureEngineering <- function(df.trainData, df.testData){
   
   df.allData <- rbind(df.trainData[,-length(df.trainData)],df.testData)
@@ -25,6 +29,8 @@ PerformFeatureEngineering <- function(df.trainData, df.testData){
   vec.naColumnsToImputate <- setdiff(names(vec.naByColumn[vec.naByColumn>0]),vec.naColumnsToRemove)
   
   for(oneColumnToImputate in vec.naColumnsToImputate){
+    
+    print(paste("Imputating",oneColumnToImputate,Sys.time(),sep=" "))
     
     vec.columnsToRemove <-names(vec.naByColumn[vec.naByColumn > 0])
     
@@ -56,6 +62,41 @@ PerformFeatureEngineering <- function(df.trainData, df.testData){
     
   }
   
+  #Create Dummy Variables for Categorical Variables that Have Upto 5 Levels
+  
+  vec.dummyVariables <- unlist(lapply(names(df.allData), function(x) {
+                                                            if(is.factor(df.allData[,x]) == T){
+                                                              
+                                                              if(length(unique(df.allData[,x])) <= 5){
+                                                               
+                                                                return(x)
+                                                                 
+                                                              }
+                                                              
+                                                            }
+                                                          }))
+  
+  for(oneCategoricalVariable in vec.dummyVariables){
+    
+    vec.categoricalColumn <- df.allData[,oneCategoricalVariable]
+    
+    mat.current <- model.matrix( ~ vec.categoricalColumn - 1)  
+    
+    df.dummyDataset <- data.frame(mat.current)
+    
+    df.dummyDataset[,1:length(df.dummyDataset)] <- lapply(df.dummyDataset[,1:length(df.dummyDataset)],
+                                                          function(x) as.factor(x))
+    
+    int.currentPosition <- which(oneCategoricalVariable==names(df.allData))
+    
+    df.allData <- df.allData[,-int.currentPosition]
+    
+    df.allData <- data.frame(df.allData, mat.current)
+    
+  }
+  
+  #Check if there's a column with 0 variance
+  
   return(df.allData)
   
 }
@@ -78,15 +119,37 @@ vec.salePrice <- df.trainData$SalePrice
 
 df.allData <- PerformFeatureEngineering(df.trainData,df.testData)
 
+#Split the data into Train and Test after Feature Engineering
+
 df.trainData <- df.allData[1:nrow(df.trainData),]
 
 df.testData  <- df.allData[(nrow(df.trainData)+1):nrow(df.allData),]
+
+#Train the Model
+
+rf.priceModel <- randomForest(vec.salePrice ~ ., data = df.trainData[,-1],
+                              importance = T, ntree = 1000)
+
+#Apply the model To Make Predictions
+
+lst.allDatasets <- list(df.trainData,df.testData)
+
+int.index <- 0
+
+for(df.oneDataset in lst.allDatasets){
   
-lm.priceModel <- lm(vec.salePrice ~ ., data = df.trainData[,-1])
+  vec.predictions <- predict(rf.priceModel, newdata = df.oneDataset)
+  
+  if(int.index == 0){
+    
+    print(rmse(log(vec.salePrice), log(vec.predictions)))
+    
+  }
+  
+  int.index <- int.index + 1  
+    
+}
 
-lm.priceModelWithStepwise <- step(lm.priceModel)
-
-vec.predictions <- predict(lm.priceModelWithStepwise, newdata = df.testData)
 
 df.resultSet <- data.frame(Id = df.testData$Id, SalePrice = vec.predictions)
 
