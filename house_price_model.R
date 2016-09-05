@@ -26,9 +26,11 @@ df.testData <- read.csv(file = paste(kFilePath,kTestFile, sep = ""), header = T)
 
 vec.salePrice <- df.trainData$SalePrice
 
+vec.testID <- df.testData$Id
+
 #Call Feautre Engineering Function
 
-df.allData <- PerformFeatureEngineering(df.trainData,df.testData)
+df.allData <- PerformFeatureEngineering(df.trainData, df.testData, vec.salePrice)
 
 #Split the data into Train and Test after Feature Engineering
 
@@ -62,6 +64,6 @@ for(df.oneDataset in lst.allDatasets){
 }
 
 
-df.resultSet <- data.frame(Id = df.testData$Id, SalePrice = vec.predictions)
+df.resultSet <- data.frame(Id = vec.testID, SalePrice = vec.predictions)
 
 write.csv(df.resultSet, file = paste(kFilePath, kOutputFile, sep = ""), row.names=FALSE)

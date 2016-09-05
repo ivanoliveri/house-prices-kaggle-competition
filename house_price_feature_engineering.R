@@ -1,6 +1,10 @@
 library(randomForest)
 
-PerformFeatureEngineering <- function(df.trainData, df.testData){
+library(Boruta)
+
+library(caret)
+
+PerformFeatureEngineering <- function(df.trainData, df.testData, vec.salePrice){
   
   df.allData <- rbind(df.trainData[,-length(df.trainData)],df.testData)
   
@@ -47,12 +51,12 @@ PerformFeatureEngineering <- function(df.trainData, df.testData){
     
     vec.responseVariable <- df.currentTrainset[,oneColumnToImputate]
     
-    lm.imputateNA <- lm(vec.responseVariable ~ ., 
-                        data = df.currentTrainset[,-c(1,int.responseVariablePosition)])
+    rf.imputateNA <- randomForest(vec.responseVariable ~ ., 
+                        data = df.currentTrainset[,-c(1,int.responseVariablePosition)],
+                        importance = T, ntree = 1000)
+  
     
-    lm.imputateNAWithStepwise <- step(lm.imputateNA)
-    
-    vec.predictions <- predict(lm.imputateNAWithStepwise, newdata = df.currentTestset)
+    vec.predictions <- predict(rf.imputateNA, newdata = df.currentTestset)
     
     df.allData[,oneColumnToImputate] <- replace(df.allData[,oneColumnToImputate],
                                                 is.na(df.allData[,oneColumnToImputate]),
@@ -60,12 +64,18 @@ PerformFeatureEngineering <- function(df.trainData, df.testData){
     
   }
   
+  #Remove Near To Zero Variance Columns
+  
+  vec.nearToZeroVarPositions <- nearZeroVar(df.allData)
+  
+  df.allData <- df.allData[,-vec.nearToZeroVarPositions]
+  
   #Create Dummy Variables for Categorical Variables that Have Upto 5 Levels
   
   vec.dummyVariables <- unlist(lapply(names(df.allData), function(x) {
     if(is.factor(df.allData[,x]) == T){
       
-      if(length(unique(df.allData[,x])) <= 5){
+      if(length(levels(df.allData[,x])) <= 5){
         
         return(x)
         
@@ -94,6 +104,24 @@ PerformFeatureEngineering <- function(df.trainData, df.testData){
   }
   
   df.allData <- PerformCustomizedFeatureEngineering(df.allData)
+    
+  #Perform Bourta Algorithm for Feature Selection
+  
+  df.partialTrainData <- df.allData[1:nrow(df.trainData),]
+  
+  bor.results <- Boruta(df.partialTrainData, vec.salePrice,
+                        maxRuns=100, doTrace=0)
+  
+  #Only Keep Non Rejected Columns
+  
+  vec.nonRejectedColumns <- 
+          names(bor.results$finalDecision[bor.results$finalDecision=="Confirmed"])
+  
+  vec.nonRejectedColumnsPositions <-
+          unlist(lapply(vec.nonRejectedColumns,
+                        function(x) which(x==names(df.allData))))
+  
+  df.allData <- df.allData[,vec.nonRejectedColumnsPositions]
   
   return(df.allData)
   
