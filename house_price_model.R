@@ -63,7 +63,6 @@ for(df.oneDataset in lst.allDatasets){
     
 }
 
-
 df.resultSet <- data.frame(Id = vec.testID, SalePrice = vec.predictions)
 
 write.csv(df.resultSet, file = paste(kFilePath, kOutputFile, sep = ""), row.names=FALSE)

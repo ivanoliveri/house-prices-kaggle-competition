@@ -129,28 +129,38 @@ PerformFeatureEngineering <- function(df.trainData, df.testData, vec.salePrice){
 
 PerformCustomizedFeatureEngineering <- function(df.allData){
   
-  kColumnsNamesToBeCastedToFactors <- c("MSSubClass","OverallQual","OverallCond","FullBath",
-                                        "HalfBath","BedroomAbvGr","KitchenAbvGr","Fireplaces")
+  vec.twoFloorsIndicator <- as.factor(ifelse(df.allData$X1stFlrSF > 0 
+                                     & df.allData$X2ndFlrSF>0, 1, 0))
   
-  #TODO: Create Dummy Variables
-  for(str.columnName in kColumnsNamesToBeCastedToFactors){
-    
-    int.position <- which(str.columnName==names(df.allData))
-    
-    vec.categoricalColumn <- as.factor(df.allData[,int.position])
-    
-    mat.categoricalColumn <- model.matrix( ~ vec.categoricalColumn - 1)
-    
-    df.dummyDataset <- data.frame(mat.categoricalColumn)
-    
-    df.dummyDataset[,1:length(df.dummyDataset)] <- lapply(df.dummyDataset[,1:length(df.dummyDataset)],
-                                                   function(x) as.factor(x))    
-    
-    df.allData <- df.allData[, -int.position]
-    
-    df.allData <- data.frame(df.allData,df.dummyDataset)
-    
-  }
+  df.allData <- data.frame(df.allData, vec.twoFloorsIndicator)
+  
+  df.allData$BsmtFullBath <- round(df.allData$BsmtFullBath,0)
+  
+  df.allData$BsmtHalfBath <- round(df.allData$BsmtHalfBath,0)
+  
+  df.allData$GarageCars <- round(df.allData$GarageCars,0)
+  
+  #Assign Neightboor Cluster
+  
+  df.clusterData <- data.frame(salePrice = vec.salePrice,
+                               neighborhood=df.trainData$Neighborhood)
+  
+  df.clusterDataSummarized <- ddply(df.clusterData,~neighborhood,
+                                    summarise,mean=mean(salePrice),
+                                    max=max(salePrice),
+                                    min=min(salePrice))
+  
+  cls.neighboors <- kmeans(df.clusterDataSummarized[,2:4],4)
+  
+  df.resultClusters <- data.frame(df.clusterDataSummarized$neighborhood,
+                                  cluster = cls.neighboors$cluster,
+                                  mean = df.clusterDataSummarized$mean)
+  
+  vec.neighboorCluster <- as.factor(unlist(lapply(df.allData$Neighborhood, 
+                                 function(x) return(subset(df.resultClusters,
+                                              subset = df.resultClusters$df.clusterDataSummarized.neighborhood==x)[2]))))
+  
+  df.allData = data.frame(df.allData,neighboorCluster = vec.neighboorCluster)
   
   return(df.allData)
   
