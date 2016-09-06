@@ -39,8 +39,7 @@ df.trainData <- df.allData[1:nrow(df.trainData),]
 df.testData  <- df.allData[(nrow(df.trainData)+1):nrow(df.allData),]
 
 #Train the Model
-
-rf.priceModel <- randomForest(vec.salePrice ~ ., data = df.trainData[,-1],
+rf.priceModel <- randomForest(vec.salePrice ~ ., data = df.trainData,
                               importance = T, ntree = 1000)
 
 #Apply the model To Make Predictions
