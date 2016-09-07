@@ -26,6 +26,8 @@ df.testData <- read.csv(file = paste(kFilePath,kTestFile, sep = ""), header = T)
 
 vec.salePrice <- df.trainData$SalePrice
 
+vec.trainID <- df.trainData$Id
+
 vec.testID <- df.testData$Id
 
 #Call Feautre Engineering Function
@@ -38,11 +40,33 @@ df.trainData <- df.allData[1:nrow(df.trainData),]
 
 df.testData  <- df.allData[(nrow(df.trainData)+1):nrow(df.allData),]
 
-#Train the Model
-rf.priceModel <- randomForest(vec.salePrice ~ ., data = df.trainData,
-                              importance = T, ntree = 1000)
+#First Layer
 
-#Apply the model To Make Predictions
+rf.firstLayerModel <- randomForest(vec.salePrice ~ ., data = df.trainData,
+                                   ntree = 750, mtry = 15)
+
+vec.predictions <- predict(rf.firstLayerModel, newdata = df.trainData)
+
+df.firstLayerResultSet <- data.frame(Id = vec.trainID, Predicted = vec.predictions,
+                                     Real = vec.salePrice, 
+                                     Diff = abs(100*((vec.predictions-vec.salePrice)/vec.salePrice)))
+
+vec.idsToRemove <- subset(df.firstLayerResultSet$Id, subset = df.firstLayerResultSet$Diff>50)
+
+vec.rowsToRemove <- unlist(lapply(vec.idsToRemove,function(x) which(x == vec.trainID)))
+
+df.trainData <- df.trainData[-vec.rowsToRemove,]
+
+vec.salePrice <- vec.salePrice[-vec.rowsToRemove]
+
+#Second Layer
+
+rf.secondLayerModel <- randomForest(vec.salePrice ~ ., data = df.trainData,
+                                    ntree = 750, mtry = 15)
+
+lm.secondLayerModel <- lm(vec.salePrice ~ ., data = df.trainData)
+
+lm.secondLayerModel <- step(lm.secondLayerModel)
 
 lst.allDatasets <- list(df.trainData,df.testData)
 
@@ -50,7 +74,11 @@ int.index <- 0
 
 for(df.oneDataset in lst.allDatasets){
   
-  vec.predictions <- predict(rf.priceModel, newdata = df.oneDataset)
+  vec.predictionsRF <- predict(rf.secondLayerModel, newdata = df.oneDataset)
+  
+  vec.predictionsLM <- predict(lm.secondLayerModel, newdata = df.oneDataset)
+  
+  vec.predictions <- (vec.predictionsRF + vec.predictionsLM)/2
   
   if(int.index == 0){
     

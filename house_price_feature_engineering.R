@@ -4,6 +4,8 @@ library(Boruta)
 
 library(caret)
 
+library(plyr)
+
 PerformFeatureEngineering <- function(df.trainData, df.testData, vec.salePrice){
   
   df.allData <- rbind(df.trainData[,-length(df.trainData)],df.testData)
