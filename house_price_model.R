@@ -78,18 +78,41 @@ for(df.oneDataset in lst.allDatasets){
   
   vec.predictionsLM <- predict(lm.secondLayerModel, newdata = df.oneDataset)
   
-  vec.predictions <- (vec.predictionsRF + vec.predictionsLM)/2
+  vec.partialPredictions <- (vec.predictionsRF + vec.predictionsLM)/2
   
   if(int.index == 0){
     
-    print(rmse(log(vec.salePrice), log(vec.predictions)))
+    #Third Layer
+    
+    df.trainData <- data.frame(df.trainData,vec.partialPredictions)
+    
+    rf.thirdLayerModel <- randomForest(vec.salePrice ~ ., data = df.trainData,
+                                        ntree = 750, mtry = 15)
+    
+    lm.thirdLayerModel <- lm(vec.salePrice ~ ., data = df.trainData)
+    
+    lm.thirdLayerModel <- step(lm.secondLayerModel)
+
+    vec.finalPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.trainData)
+    
+    vec.finalPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.trainData)
+    
+    vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM)/2
+        
+    print(rmse(log(vec.salePrice), log(vec.finalPredictions)))
     
   }
+  
+  vec.finalPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.oneDataset)
+  
+  vec.finalPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.oneDataset)
+  
+  vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM)/2
   
   int.index <- int.index + 1  
     
 }
 
-df.resultSet <- data.frame(Id = vec.testID, SalePrice = vec.predictions)
+df.resultSet <- data.frame(Id = vec.testID, SalePrice = vec.finalPredictions)
 
 write.csv(df.resultSet, file = paste(kFilePath, kOutputFile, sep = ""), row.names=FALSE)
