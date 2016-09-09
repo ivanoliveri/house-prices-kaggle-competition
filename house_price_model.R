@@ -51,7 +51,7 @@ df.firstLayerResultSet <- data.frame(Id = vec.trainID, Predicted = vec.predictio
                                      Real = vec.salePrice, 
                                      Diff = abs(100*((vec.predictions-vec.salePrice)/vec.salePrice)))
 
-vec.idsToRemove <- subset(df.firstLayerResultSet$Id, subset = df.firstLayerResultSet$Diff>50)
+vec.idsToRemove <- subset(df.firstLayerResultSet$Id, subset = df.firstLayerResultSet$Diff>45)
 
 vec.rowsToRemove <- unlist(lapply(vec.idsToRemove,function(x) which(x == vec.trainID)))
 
