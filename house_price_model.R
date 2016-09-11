@@ -4,6 +4,10 @@ library(randomForest)
 
 library(Metrics)
 
+library(MCMCpack)
+
+library(nnet)
+
 #Define Constants
 
 kFilePath <- "C:/Users/Ivan/Documents/GitHub/house-prices-kaggle-competition/"
@@ -92,12 +96,19 @@ for(df.oneDataset in lst.allDatasets){
     lm.thirdLayerModel <- lm(vec.salePrice ~ ., data = df.trainData)
     
     lm.thirdLayerModel <- step(lm.secondLayerModel)
+    
+    nnet.thirdLayerModel <- nnet(vec.salePrice ~ ., data = df.trainData,
+                                 size=10, linout=TRUE, skip=TRUE, MaxNWts=10000, 
+                                 trace=FALSE, maxit=100)
 
     vec.finalPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.trainData)
     
     vec.finalPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.trainData)
     
-    vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM)/2
+    vec.finalPredictionsNNET <- predict(nnet.thirdLayerModel, newdata = df.trainData)
+    
+    vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM +
+                               vec.finalPredictionsNNET) / 3
         
     print(rmse(log(vec.salePrice), log(vec.finalPredictions)))
     
@@ -107,7 +118,10 @@ for(df.oneDataset in lst.allDatasets){
   
   vec.finalPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.oneDataset)
   
-  vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM)/2
+  vec.finalPredictionsNNET <- predict(nnet.thirdLayerModel, newdata = df.oneDataset)
+  
+  vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM +
+                             vec.finalPredictionsNNET) / 3
   
   int.index <- int.index + 1  
     
