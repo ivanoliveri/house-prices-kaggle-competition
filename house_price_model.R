@@ -101,27 +101,33 @@ for(df.oneDataset in lst.allDatasets){
                                  size=10, linout=TRUE, skip=TRUE, MaxNWts=10000, 
                                  trace=FALSE, maxit=100)
 
-    vec.finalPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.trainData)
+    vec.partiallPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.trainData)
     
-    vec.finalPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.trainData)
+    vec.partialPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.trainData)
     
-    vec.finalPredictionsNNET <- predict(nnet.thirdLayerModel, newdata = df.trainData)
+    vec.partialPredictionsNNET <- predict(nnet.thirdLayerModel, newdata = df.trainData)
     
-    vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM +
-                               vec.finalPredictionsNNET) / 3
-        
+    vec.partialPredictions <- (vec.partialPredictionsRF + vec.partialPredictionsLM +
+                               vec.partialPredictionsNNET) / 
+      
+    df.trainData <- df.trainData[,-length(df.trainData)]
+      
+    df.trainData <- data.frame(df.trainData, vec.partialPredictions)
+      
+    xgb.fourthLayerModel
+      
     print(rmse(log(vec.salePrice), log(vec.finalPredictions)))
     
   }
   
-  vec.finalPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.oneDataset)
+  vec.partialPredictionsRF <- predict(rf.thirdLayerModel, newdata = df.oneDataset)
   
-  vec.finalPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.oneDataset)
+  vec.partialPredictionsLM <- predict(lm.thirdLayerModel, newdata = df.oneDataset)
   
-  vec.finalPredictionsNNET <- predict(nnet.thirdLayerModel, newdata = df.oneDataset)
+  vec.partialPredictionsNNET <- predict(nnet.thirdLayerModel, newdata = df.oneDataset)
   
-  vec.finalPredictions <- (vec.finalPredictionsRF + vec.finalPredictionsLM +
-                             vec.finalPredictionsNNET) / 3
+  vec.partialPredictions <- (vec.partialPredictionsRF + vec.partialPredictionsLM +
+                             vec.partialPredictionsNNET) / 3
   
   int.index <- int.index + 1  
     
