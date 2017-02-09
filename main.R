@@ -156,6 +156,16 @@ for(str.columnToRemove in vec.columnsWithNearToZeroVariance){
   
 }
 
+
+vec.totalArea <-  df.allData$LotArea + df.allData$MasVnrArea + df.allData$GrLivArea + df.allData$PoolArea +
+                  df.allData$X1stFlrSF + df.allData$X2ndFlrSF
+  
+vec.totalBathrooms <- df.allData$BsmtFullBath + df.allData$BsmtHalfBath + df.allData$FullBath + df.allData$HalfBath
+  
+vec.secondFloorIndicator <- ifelse(df.allData$X2ndFlrSF >0,1,0)
+  
+df.allData <- data.frame(df.allData, vec.totalArea, vec.totalBathrooms, vec.secondFloorIndicator)
+
 #Split into Training and Testing
 
 df.newTrain <- df.allData[1:1460,]
