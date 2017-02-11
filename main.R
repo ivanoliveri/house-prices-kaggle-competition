@@ -145,10 +145,9 @@ vec.columnsWithNearToZeroVariance <- c("MSZoning.C..all.","MSZoning.RH","Street.
                                        "Functional.Min1","Functional.Min2","Functional.Mod","Functional.Sev","FireplaceQu.Ex","GarageType.Basment",
                                        "GarageType.CarPort","GarageCond.Ex","GarageCond.Fa","GarageCond.Gd","GarageCond.Po","PavedDrive.P",
                                        "SaleType.COD","SaleType.Con","SaleType.ConLD","SaleType.ConLI","SaleType.ConLw","SaleType.CWD",
-                                       "SaleType.Oth","SaleCondition.AdjLand","SaleCondition.Alloca","SaleCondition.Family")
+                                       "SaleType.Oth","SaleCondition.AdjLand","SaleCondition.Alloca","SaleCondition.Family","Utilities.AllPub")
 
 for(str.columnToRemove in vec.columnsWithNearToZeroVariance){
-  
   
   int.columnPositionToRemove <- which(str.columnToRemove == names(df.allData))
   
@@ -222,11 +221,23 @@ mars.model <- train(df.newTrainFiltered[,-length(df.newTrainFiltered)],
 
 lm.model <- step(lm(vec.transformedResponse ~ ., data = df.newTrainFiltered))
 
+lasso.grid <- expand.grid(lambda = c(0.001,0.005, 0.0001, 0.0005,0.00001))
+
+lasso.model <- train( df.newTrainFiltered[,-length(df.newTrainFiltered)], 
+                    df.newTrainFiltered$vec.transformedResponse,		
+                    method = "rqlasso", trControl = firstLayer.control,		
+                    preProc = c("center", "scale"),		          
+                    tuneGrid = lasso.grid, metric="RMSE")
+
 vec.predictionsMARS <- 10^(predict(mars.model, newdata = df.newTrainFiltered)) - 1
 
 vec.predictionsLM <- 10^(predict(lm.model, newdata = df.newTrainFiltered)) - 1
 
-vec.finalPredictions <-  (vec.predictionsMARS+vec.predictionsLM)/2
+vec.selectedColumns <- names(lasso.model$trainingData)[-length(names(lasso.model$trainingData))]
+
+vec.predictionsLASSO <- 10^(predict(lasso.model, newdata = df.newTrainFiltered[,vec.selectedColumns])) - 1
+
+vec.finalPredictions <-  (vec.predictionsMARS+vec.predictionsLM+vec.predictionsLASSO)/3
 
 print(paste("RMSE",rmse(log(df.newTrainFiltered$vec.transformedResponse,10),
      log(vec.finalPredictions,10))))
@@ -237,7 +248,11 @@ vec.predictionsMARS <- 10^(predict(mars.model, newdata = df.newTest)) - 1
 
 vec.predictionsLM <- 10^(predict(lm.model, newdata = df.newTest)) - 1
 
-vec.finalPredictions <-  (vec.predictionsMARS+vec.predictionsLM)/2
+vec.selectedColumns <- names(lasso.model$trainingData)[-length(names(lasso.model$trainingData))]
+
+vec.predictionsLASSO <- 10^(predict(lasso.model, newdata = df.newTest[,vec.selectedColumns])) - 1
+
+vec.finalPredictions <-  (vec.predictionsMARS+vec.predictionsLM+vec.predictionsLASSO)/3
 
 df.resultSet <- data.frame(Id = vec.idsTesting, SalePrice = vec.finalPredictions)
 
